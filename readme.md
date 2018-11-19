@@ -7,3 +7,6 @@ May be superseded at any time by equivalent literature, with the requirement tha
 ## Contents
 
 1. Assertions Master Document (assertions.md)
+2. Reference Material (references.md)
+3. Subsystem notes (subsystems/)  
+  3a. Virtual Computer (virtualcomp.md)
