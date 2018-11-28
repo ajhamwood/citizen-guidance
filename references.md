@@ -29,7 +29,8 @@ Unification https://core.ac.uk/download/pdf/80792194.pdf
 Pattern matching without using K, Agda Lite https://jesper.sikanda.be/files/thesis-final-digital.pdf
 
 JSLint (parser example) https://github.com/douglascrockford/JSLint/blob/master/jslint.js  
-Pi Lambda without datatypes (simplest possible dependently typed language) http://strictlypositive.org/Easy.pdf  
+Pi Lambda without datatypes (simplest possible dependently typed language) https://www.andres-loeh.de/LambdaPi/LambdaPi.pdf  
+Pi Lambda with datatypes https://github.com/sweirich/pi-forall
 Blodwen https://github.com/edwinb/Blodwen
 
 ## Blockchain

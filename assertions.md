@@ -80,6 +80,7 @@ No pending amendments.
 **3.0.4k** "**Compute**", which provides a market in performant computing.  
 **3.0.4l** "**Bug Bounty**", which provides a market in failing tests.  
 **3.0.4m** "**Disruptor**", which can be requested to act as an adversarial agent, to test contract robustness.
+**3.0.4n** "**Content**", the creatives forum. Create content on the main website.
 
 ### 3.1 About the Upgrader
 
