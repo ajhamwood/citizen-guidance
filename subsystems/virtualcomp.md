@@ -4,7 +4,9 @@ This file is a semi-structured and non-enforced collection of notes, relevant to
 
 ### *Current job:*
 
-Simply typed lambda + lexer + parser ==> Pi Lambda
+- Lambda Pi (Loeh) w/o eliminators ==>  
+  Understand sweirich/pi-forall ==>  
+  Add data declarations + pattern matching, following Cockx Dependent Pattern Matching for without-k
 
 ### What is the virtual computer in Citizen?
 
@@ -30,14 +32,20 @@ Simply typed lambda + lexer + parser ==> Pi Lambda
 
 ### Univalence-compatible pattern matching in virtual computer
 
-- With Transport, could programs potentially take advantage of {contract cost optimisations} by transporting data structures to structures on primitives? Ie explicitly targeting compiler optimisations  
-  => A something like a *view*?
+- With Transport, could programs potentially take advantage of eg contract cost optimisations by transporting data structures to structures on primitives? Ie explicitly targeting compiler optimisations... something like a *view*?  
+  ==> Proof terms can be transported, so programs can be transported. This is crazy awesome, because given a correct description within the virtual computer of Citizen's subsystems, we can introduce proofs of external behaviour within contracts!
+
 
 ### Name for the high level language?
 
+K A T S U O
+
 ### Fake code
 
-Don't fuck around with DSLs. Just hardcode common syntaxes ((1, "2", 3.0), [1, 2..], do; y <- x, etc)
+- Don't fuck around with DSLs. Just hardcode common syntaxes ((1, "2", 3.0), [1, 2..], do; y <\- x, etc)  
+  ==> This means I need built-in Pair, List, Monad...
+- I wonder... could `trust_me` be expressed as a set of assumptions injected into context before the program runs?
+- Nothing interesting happens outside small types, so boilerplate universe cruft
 
 ```
 # Peano naturals
@@ -61,62 +69,111 @@ plus : Nat -> Nat -> Nat {
 }
 
 
-# Pi types (type family):
-data Vec (t : Type) : t ==> Nat -> Type {
+# Pi types, aka type family (t is pi bound, so in scope between the braces):
+data Vec t : (t : Type) ==> Nat -> Type {
   Nil : Vec t Z
-  (infixr 5 ::) : n ==> (x : t) -> (xs : Vec t n) -> Vec t (S n)
+  (:: r5) : n ==> (x : t) -> (xs : Vec t n) -> Vec t (S n)
 }
 
 id := (x => x) : (a : Type) ==> a -> a
 const := (x, y => x) : (a, b : Type) ==> (b -> b) -> a -> (b -> b)
 
-# W types just with the pipe?
+# W types (difficult?)
+data Tree a : (a : Type) ==> Type {
+  Node : (label : a) -> [Tree a] -> Tree a
+}
+data Tree' a : (a : Type) ==> Type { Node' a [Tree' a] }
 
 
-# Multiplication / addition on Types?
-data Pair : (a, b : Type) ==> a -> b -> Type { MkPair a b }
-data Either : (a, b : Type) ==> a -> b -> Type {
-  Left : (l : a) -> Either a b
-  Right : (r : b) -> Either a b
+# Builtin syntax
+data Pair a b : (a, b : Type) ==> a -> b -> Type {
+  MkPair : a -> b -> (a, b)
+}
+data DPair a b : (a : Type), (b : a -> Type) ==> Type {
+  MkDPair : (x : a) -> b x -> (x | b x)
 }
 
 # Let binding
 mirror : (a : Type) ==> List a -> List a {
+  @ xs := xs ++ xs'
   xs' := reverse xs
-  @ xs = xs ++ xs'
 }
 
-# Class / implementation (??)
-record Applicative m ==> Monad (m : Type -> Type) {
-  (infixl 1 >>=) : (a, b : Type) ==> m a -> ((result : a) -> m b) -> m b
+
+# Interfaces / typeclasses (??)
+data Functor f : (f : Type -> Type) ==> Type {
+  map : (a, b : Type) ==> (a -> b) -> f a -> f b
+}
+
+# Constraints
+data Applicative f : (f : Type -> Type) ==> Type {
+  pure : (a : Type) ==> a -> f a
+  (<*> l2) : (a, b : Type) ==> f (a -> b) -> f a -> f b
+}
+
+# Implementation (??) differs from fundef by absence of colon
+# Functor (f : Type -> Type) ==> Applicative f {...} ?
+Functor Applicative {
+  @ map := g, x => pure g <*> x
+}
+
+zipWith : (a, b : Type), (n: Nat) ==>
+          Vec (a -> b) n -> Vec a n -> Vec b n {
+  @ Nil       _         := Nil
+  @ (f :: fs) (x :: xs) := f x :: (zipWith fs xs)
+}
+
+# Implicit pattern matching
+replicate : (a : Type), (n : Nat) ==> a -> Vec a n {
+  _ Z     @ x := []
+  _ (S _) @ x := x :: replicate x
+}
+
+# Is there a good reason to separate parameters and indexes (eg in data Vec)?
+Applicative (n : Nat) ==> a => Vec a n {
+  @ pure := replicate
+  @ (<*>) := zipWith
+}
+
+# Force an implementation
+Functor (n : Nat) ==> a => Vec a n {
+  @ map f [] := []
+  @ map f (x::xs) := f x :: map f xs
 }
 
 
 # Identity type with propositional equality:
-data (infixr 4 =) : (a : Type) => a -> a -> Type { Refl : a = a }
+data (= r4) : (a : Type) ==> a -> a -> Type { Refl : a = a }
 cong : (f : t -> u) ==> f -> (a = b) -> f a = f b {
   @ Refl := Refl
 }
 
 # Example:
-# (Idris version uses heterogenous equality, so not allowed)
+# (Idris version uses heterogeneous equality, so not allowed)
 # vect_eq_length : (xs : Vect a n) -> (ys : Vect a m) -> (xs = ys) -> n = m
-
-namespace VecEq {  
-  data (infixr 4 ~=~) : Vec a n -> Vec a m -> Type {
+namespace VecEq {
+  data (~=~ r4) : Vec a n -> Vec a m -> Type {
     nilCong : [] ~=~ []
-    consCong x y : ((x = y) : a) -> (xs ~=~ ys) -> (x :: xs ~=~ y :: ys)
+    consCong x y : xs, ys ==> ((x = y) : a) -> (xs ~=~ ys) -> (x :: xs ~=~ y :: ys)
   }
 
-  vec_eq_length : (n, m : Nat), (xs : Vec a n), (ys : Vec a m) ==> xs ~=~ ys -> n = m {
+  vec_eq_length : (n, m : Nat), (xs : Vec a n), (ys : Vec a m) ==>
+                  xs ~=~ ys -> n = m {
     @ nilCong        := Refl
-    @ (consCong _ x) := cong S $ vect_eq_length x
+    @ (consCong _ e) := cong S $ vect_eq_length e
   }
 }
 
 
-# Pi argument (is this even correct over small types?)
-Extensionality : (a : Type, b : a -> Type) => a -> b -> Type -> Type {
-  @ a b := (f, g : (x : a) -> b x) ==> (x ==> f x = g x) -> (f = g)
+# Making use of univalence
+extensionality : (a : Type), (b : a -> Type), (f, g : (x : a) -> b x) ==>
+                 Type -> Type {
+  @ := (x ==> f x = g x) -> (f = g)
 }
+# Propositional equality or equivalence...
+extensionality' : Type {
+  @ := (a : Type), (b : a -> Type), (f, g : (x : a) -> b x) ==>
+       (x ==> f x = g x) = (f = g)
+}
+# TODO: (VecEq.(~=~) ~=~ (=))? Transport example with bytes/nats
 ```
