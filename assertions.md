@@ -63,7 +63,7 @@ No pending amendments.
 
 * **3.0.3** The codebase *fulfils equivalent purposes* in at least the following modes:  
 **3.0.3a** A **Minimal** node, designed for access by the greatest number of people possible. In this mode it is deployed as a web application.  
-**3.0.3b** A **General Purpose** node, designed to be run on a PC. In this mode the method of deployment is not indicated. Maybe written in Golang?  
+**3.0.3b** A **General Purpose** node, designed to be run on a PC. In this mode the method of deployment is not indicated. Golang? Rust? Haskell?  
 **3.0.3c** A **Full** node, designed to make use of locally available resources of indefinite scale and nature. Also without indicated method of deployment.
 
 * **3.0.4** The virtual computing environment is initially loaded with at least *some* of the following general purpose "sponsored" contracts:  

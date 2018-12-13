@@ -4,9 +4,17 @@ This file is a semi-structured and non-enforced collection of notes, relevant to
 
 ### *Current job:*
 
-- Lambda Pi (Loeh) w/o eliminators ==>  
-  Understand sweirich/pi-forall ==>  
-  Add data declarations + pattern matching, following Cockx Dependent Pattern Matching for without-k
+- Simply typed lambda calculus
+- Lambda Pi (Loeh) w/o eliminators
+- Understand sweirich/pi-forall ==>  
+  **Add data declarations, pattern matching, erasure**~~, following Cockx Dependent Pattern Matching for Agda without-k~~
+- Primitives & Builtins
+- Holes
+- Prelude
+- Program costing approaches
+- Modules after blockchain
+
+TODO: split Katsuo git into browser and nodejs branches
 
 ### What is the virtual computer in Citizen?
 
@@ -32,8 +40,9 @@ This file is a semi-structured and non-enforced collection of notes, relevant to
 
 ### Univalence-compatible pattern matching in virtual computer
 
-- With Transport, could programs potentially take advantage of eg contract cost optimisations by transporting data structures to structures on primitives? Ie explicitly targeting compiler optimisations... something like a *view*?  
-  ==> Proof terms can be transported, so programs can be transported. This is crazy awesome, because given a correct description within the virtual computer of Citizen's subsystems, we can introduce proofs of external behaviour within contracts!
+- ~~With Transport, could programs potentially take advantage of eg contract cost optimisations by transporting data structures to structures on primitives? Ie explicitly targeting compiler optimisations... something like a *view*?  
+  ==> Proof terms can be transported, so programs can be transported. This is crazy awesome, because given a correct description within the virtual computer of Citizen's subsystems, we can introduce proofs of external behaviour within contracts!~~
+- Cubical is not even ready in Agda yet, put outside scope for now
 
 
 ### Name for the high level language?
@@ -45,7 +54,7 @@ K A T S U O
 - Don't fuck around with DSLs. Just hardcode common syntaxes ((1, "2", 3.0), [1, 2..], do; y <\- x, etc)  
   ==> This means I need built-in Pair, List, Monad...
 - I wonder... could `trust_me` be expressed as a set of assumptions injected into context before the program runs?
-- Nothing interesting happens outside small types, so boilerplate universe cruft
+- For user purposes, nothing is lost by identifying `Type1` with `Type`
 
 ```
 # Peano naturals
@@ -53,8 +62,7 @@ data Nat : Type {
   Z : Nat
   S : (n : Nat) -> Nat
 }
-# ...or...
-data Nat { Z | S Nat }
+data Nat' { Z | S Nat' }
 
 # Primitives
 n : Float
@@ -70,26 +78,28 @@ plus : Nat -> Nat -> Nat {
 
 
 # Pi types, aka type family (t is pi bound, so in scope between the braces):
-data Vec t : (t : Type) ==> Nat -> Type {
+data Vec (t : Type) : Nat -> Type {
   Nil : Vec t Z
   (:: r5) : n ==> (x : t) -> (xs : Vec t n) -> Vec t (S n)
 }
 
+# How to do implicit arguments? Erasure?
+# id := ({t}, x => x) : (t : Type) ==> a -> a
 id := (x => x) : (a : Type) ==> a -> a
 const := (x, y => x) : (a, b : Type) ==> (b -> b) -> a -> (b -> b)
 
 # W types (difficult?)
-data Tree a : (a : Type) ==> Type {
+data Tree (a : Type) : Type {
   Node : (label : a) -> [Tree a] -> Tree a
 }
 data Tree' a : (a : Type) ==> Type { Node' a [Tree' a] }
 
 
-# Builtin syntax
-data Pair a b : (a, b : Type) ==> a -> b -> Type {
+# Builtin syntax, telescope composition (??)
+data Pair (a; b : Type) : a -> b -> Type {
   MkPair : a -> b -> (a, b)
 }
-data DPair a b : (a : Type), (b : a -> Type) ==> Type {
+data DPair (a : Type); (b : a -> Type) : Type {
   MkDPair : (x : a) -> b x -> (x | b x)
 }
 
@@ -99,22 +109,28 @@ mirror : (a : Type) ==> List a -> List a {
   xs' := reverse xs
 }
 
-
-# Interfaces / typeclasses (??)
-data Functor f : (f : Type -> Type) ==> Type {
-  map : (a, b : Type) ==> (a -> b) -> f a -> f b
+# Case
+lookup_default : (a : Type) ==> Nat -> List a -> a -> a {
+  @ i xs def := list_lookup i xs {
+    Nothing := def
+    Just x  := x
+  }
 }
 
-# Constraints
-data Applicative f : (f : Type -> Type) ==> Type {
+
+# Classes/interfaces/records are constructed with signatures
+data @ Functor (f : Type -> Type) : Type {
+  map : (a, b : Type) ==> (a -> b) -> f a -> f b
+}
+data @ Applicative (f : Type -> Type) : Type {
   pure : (a : Type) ==> a -> f a
   (<*> l2) : (a, b : Type) ==> f (a -> b) -> f a -> f b
 }
 
-# Implementation (??) differs from fundef by absence of colon
+# Implementations are constructed with definitions
 # Functor (f : Type -> Type) ==> Applicative f {...} ?
 Functor Applicative {
-  @ map := g, x => pure g <*> x
+  map := g, x => pure g <*> x
 }
 
 zipWith : (a, b : Type), (n: Nat) ==>
@@ -131,21 +147,23 @@ replicate : (a : Type), (n : Nat) ==> a -> Vec a n {
 
 # Is there a good reason to separate parameters and indexes (eg in data Vec)?
 Applicative (n : Nat) ==> a => Vec a n {
-  @ pure := replicate
-  @ (<*>) := zipWith
+  pure := replicate
+  (<*>) := zipWith
 }
 
 # Force an implementation
 Functor (n : Nat) ==> a => Vec a n {
-  @ map f [] := []
-  @ map f (x::xs) := f x :: map f xs
+  map f [] := []
+  map f (x::xs) := f x :: map f xs
 }
 
 
 # Identity type with propositional equality:
-data (= r4) : (a : Type) ==> a -> a -> Type { Refl : a = a }
-cong : (f : t -> u) ==> f -> (a = b) -> f a = f b {
-  @ Refl := Refl
+data Id (a : Type) ==> a : a -> Type { # Telescope, not Pi
+  Refl : (x : a) ==> (= r4) x x
+}
+cong : (a, b : Type), (x, y : a) ==> (f : a -> b) -> x = y -> f x = f y {
+  @ f Refl := Refl
 }
 
 # Example:
@@ -165,15 +183,8 @@ namespace VecEq {
 }
 
 
-# Making use of univalence
+# Univalence, but no computational behaviour without cubical
 extensionality : (a : Type), (b : a -> Type), (f, g : (x : a) -> b x) ==>
                  Type -> Type {
   @ := (x ==> f x = g x) -> (f = g)
-}
-# Propositional equality or equivalence...
-extensionality' : Type {
-  @ := (a : Type), (b : a -> Type), (f, g : (x : a) -> b x) ==>
-       (x ==> f x = g x) = (f = g)
-}
-# TODO: (VecEq.(~=~) ~=~ (=))? Transport example with bytes/nats
 ```
